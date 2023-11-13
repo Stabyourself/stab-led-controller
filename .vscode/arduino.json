@@ -1,0 +1,7 @@
+{
+    "configuration": "cpu=atmega328old",
+    "board": "arduino:avr:nano",
+    "sketch": "stab-led-controller.ino",
+    "port": "COM3",
+    "programmer": "usbasp"
+}
