@@ -4,20 +4,23 @@
 // #define CLK_PIN   4
 #define LED_TYPE WS2812B
 #define NUM_LEDS 288
-#define BRIGHTNESS 50
+#define BRIGHTNESS 30
 
 CRGB leds[NUM_LEDS];
 
-byte colors[6][3] = {
-    {0, 255, 0},
-    {255, 32, 135},
-    {255, 0, 0},
-    {0, 0, 255},
-    {255, 255, 0},
-    {0, 255, 255}};
+CRGB colors[6] = {
+    CRGB(0, 255, 0),
+    CRGB(255, 32, 135),
+    CRGB(255, 0, 0),
+    CRGB(0, 0, 255),
+    CRGB(255, 255, 0),
+    CRGB(0, 255, 255)};
 
 int player1color = 0;
 int player2color = 1;
+
+float bpms[4] = {124, 30, 300, 120};
+int currentBpm = 0;
 
 CRGBPalette16 currentPalette;
 void updateColors() {
@@ -55,8 +58,40 @@ void modeTitle() {
   }
 }
 
-void (*modes[])() = {modeTitle};
-int currentMode = 0;
+void modeMusic() {
+  double beatDuration = 60000 / bpms[currentBpm];
+  double beatTime = fmod(millis() * 0.978, beatDuration);  // magic value which makes it a bit more accurate. not perfect still.
+  int brightness = (1 - beatTime / beatDuration) * 255;
+
+  fill_solid(leds, NUM_LEDS / 2, colors[player1color]);
+  fill_solid(leds + NUM_LEDS / 2, NUM_LEDS / 2, colors[player2color]);
+
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i] %= brightness;
+  }
+}
+
+void modeMusicAlternating() {
+  double beatDuration = 60000 / bpms[currentBpm];
+  double beatTime = fmod(millis() * 0.978, beatDuration);  // magic value which makes it a bit more accurate. not perfect still.
+  int brightness = (1 - beatTime / beatDuration) * 255;
+  bool alternateBeat = fmod(millis() * 0.978, beatDuration * 2) >= beatDuration;
+
+  int color = player1color;
+
+  if (alternateBeat) {
+    color = player2color;
+  }
+
+  fill_solid(leds, NUM_LEDS, colors[color]);
+
+  for (int i = 0; i < NUM_LEDS; i++) {
+    leds[i] %= brightness;
+  }
+}
+
+void (*modes[])() = {modeTitle, modeMusic, modeMusicAlternating};
+int currentMode = 1;
 
 unsigned long effectStart;
 int currentEffect = -1;
@@ -105,8 +140,11 @@ void loop() {
         player2color = command - 134;
         updateColors();
         break;
-      case 140 ... 255:  //  effects
-        effect(command - 140);
+      case 140 ... 143:  // bpm
+        currentBpm = command - 140;
+        break;
+      case 144 ... 255:  //  effects
+        effect(command - 144);
         break;
     }
   }
